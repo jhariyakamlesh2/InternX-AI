@@ -1,0 +1,31 @@
+# OpenAI Integration
+langchain-openai
+openai
+
+# Anthropic Integration
+langchain-anthropic
+
+# Google Gemini (PaLM) Integration
+langchain-google-genai
+google-generativeai
+
+# Hugging Face Integration
+langchain-huggingface
+transformers
+huggingface-hub
+
+# Environment Variable Management python-
+ dotenv 
+# Machine Learning Utilities
+ numpy 
+ scikit-learn
+# Data Handling
+Pandas
+streamlit>=1.32.0
+langchain>=0.2.0
+langchain-openai>=0.1.0
+langchain-community>=0.2.0
+openai>=1.30.0
+#steamlit>=1.32.0
+streamlit
+
