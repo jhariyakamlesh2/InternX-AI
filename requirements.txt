@@ -31,4 +31,7 @@ langchain_ollama
 #steamlit>=1.32.0
 streamlit
 
+torch
+torchvision
+torchaudio
 
