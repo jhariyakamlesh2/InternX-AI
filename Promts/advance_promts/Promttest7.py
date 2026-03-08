@@ -16,7 +16,6 @@ st.title("📊 EXPENSE TRACKER")
 # LangChain Setup
 llm = HuggingFaceEndpoint(
     repo_id="mistralai/Mistral-7B-Instruct-v0.2",  # ya koi bhi model
-    huggingfacehub_api_token=token,  # explicitly pass karo
     task="text-generation",
     max_new_tokens=512,
 )
@@ -101,3 +100,4 @@ if st.button("Generate Expense Summary"):
     else:
 
         st.warning("No expense data available for analysis.")
+
