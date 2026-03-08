@@ -9,9 +9,7 @@ import os
 
 load_dotenv()
 
-token = os.getenv("HUGGINGFACEHUB_API_TOKEN")
-if not token:
-    raise ValueError("HUGGINGFACEHUB_API_TOKEN not found! .env file check karo.")
+
 st.set_page_config(page_title="Expense Tracker", layout="wide")
 st.title("📊 EXPENSE TRACKER")
 
@@ -101,4 +99,5 @@ if st.button("Generate Expense Summary"):
         st.subheader("AI Expense Analysis")
         st.write(ai_response.content)   # ✅ use .content for chat model output
     else:
+
         st.warning("No expense data available for analysis.")
