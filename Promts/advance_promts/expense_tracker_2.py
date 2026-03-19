@@ -5,7 +5,8 @@ import plotly.graph_objects as go
 from io import BytesIO
 import datetime
 import os
-import anthropic
+import huggingface_hub                                         # FIX 1: missing import
+from langchain_huggingface import HuggingFaceEndpoint, ChatHuggingFace  # FIX 2: removed HuggingFaceHubError
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -14,7 +15,7 @@ load_dotenv()
 #  PAGE CONFIG
 # ─────────────────────────────────────────
 st.set_page_config(
-    page_title="Expense Tracker · Claude AI",
+    page_title="Expense Tracker · AI Asystance",
     page_icon="💸",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -132,11 +133,11 @@ label { color: #aaa !important; font-size: 0.82rem !important; letter-spacing: 0
 
 
 # ─────────────────────────────────────────
-#  CLAUDE AI — SUMMARY FUNCTION
+#   AI — SUMMARY FUNCTION
 # ─────────────────────────────────────────
 
-CLAUDE_MODEL   = "claude-sonnet-4-5"   # latest fast + smart model
-CLAUDE_SYSTEM  = (
+HF_MODEL = "meta-llama/Meta-Llama-3-8B-Instruct"
+HF_SYSTEM  = (
     "You are a smart, friendly personal finance assistant. "
     "You analyze expense data and give clear, actionable insights in simple language. "
     "Use bullet points and section headers. Be concise but thorough."
@@ -173,9 +174,9 @@ One practical, specific suggestion to reduce expenses.
 Keep the tone friendly, concise, and helpful."""
 
 
-def generate_claude_summary(df: pd.DataFrame, api_key: str) -> str:
-    """Call Claude API directly using anthropic SDK."""
-    client = anthropic.Anthropic(api_key=api_key)
+def generate_hf_summary(df: pd.DataFrame, api_key: str) -> str:
+    """Call Hugging Face API to generate an expense summary using the specified model."""
+    client = huggingface_hub.InferenceClient(model=HF_MODEL, token=api_key)
 
     sample  = df.head(40).to_string(index=False)
     total   = f"{df['Amount'].sum():,.2f}"  if "Amount"   in df.columns else "N/A"
@@ -195,14 +196,15 @@ def generate_claude_summary(df: pd.DataFrame, api_key: str) -> str:
         top_cat=str(top_cat),
     )
 
-    message = client.messages.create(
-        model=CLAUDE_MODEL,
+    message = client.chat_completion(
+        messages=[
+            {"role": "system", "content": HF_SYSTEM},
+            {"role": "user",   "content": prompt},
+        ],
         max_tokens=1024,
-        system=CLAUDE_SYSTEM,
-        messages=[{"role": "user", "content": prompt}],
     )
 
-    return message.content[0].text
+    return message.choices[0].message.content
 
 
 # ─────────────────────────────────────────
@@ -293,7 +295,7 @@ for k, v in defaults.items():
 with st.sidebar:
     st.markdown("## 💸 ExpenseIQ")
     st.markdown(
-        "<p style='color:#666;font-size:0.8rem;margin-top:-10px'>Smart Tracker · Claude AI</p>",
+        "<p style='color:#666;font-size:0.8rem;margin-top:-10px'>Smart Tracker · HF AI</p>",
         unsafe_allow_html=True,
     )
     st.divider()
@@ -322,22 +324,19 @@ with st.sidebar:
 
     st.divider()
 
-    # ── Claude API Key ──
-    st.markdown("### 🤖 Claude AI Settings")
-    # Try to load from .env first; allow override via sidebar
-    env_key = os.getenv("ANTHROPIC_API_KEY", "")
+    # ── Hugging Face API Key ──
+    st.markdown("### 🤖 HF AI Settings")
+    env_key = os.getenv("HF_TOKEN", "")
     api_key_input = st.text_input(
-        "Anthropic API Key",
+        "Hugging Face API Key",
         value=env_key,
         type="password",
-        placeholder="sk-ant-...",
-        help="Get your key from https://console.anthropic.com",
+        placeholder="hf_...",
+        help="Get your key from https://huggingface.co/settings/tokens",
     )
-    st.caption("🔒 Key is never stored. Set `ANTHROPIC_API_KEY` in `.env` to auto-load.")
-
-    # Show which model is being used
+    st.caption("🔒 Key is never stored. Set `HF_TOKEN` in `.env` to auto-load.")
     st.markdown(
-        f"<p style='color:#555;font-size:0.78rem'>Model: <b style='color:#7c6eff'>{CLAUDE_MODEL}</b></p>",
+        f"<p style='color:#555;font-size:0.78rem'>Model: <b style='color:#7c6eff'>{HF_MODEL}</b></p>",
         unsafe_allow_html=True,
     )
 
@@ -360,7 +359,7 @@ with st.sidebar:
 
     st.divider()
     st.markdown(
-        "<p style='color:#333;font-size:0.73rem;text-align:center'>ExpenseIQ v3.0 · Claude Edition</p>",
+        "<p style='color:#333;font-size:0.73rem;text-align:center'>ExpenseIQ v3.0 · HF Edition</p>",
         unsafe_allow_html=True,
     )
 
@@ -390,7 +389,7 @@ col_h1, col_h2 = st.columns([3, 1])
 with col_h1:
     st.markdown("# 💸 Expense Tracker")
     st.markdown(
-        "<p style='color:#555;margin-top:-12px;font-size:0.9rem'>Upload · Analyse · Claude AI Summary · Export</p>",
+        "<p style='color:#555;margin-top:-12px;font-size:0.9rem'>Upload · Analyse · AI Summary · Export</p>",
         unsafe_allow_html=True,
     )
 with col_h2:
@@ -421,13 +420,13 @@ else:
 
 
 # ─────────────────────────────────────────
-#  🤖 CLAUDE AI SUMMARY SECTION
+#  🤖 HF AI SUMMARY SECTION
 # ─────────────────────────────────────────
 if not df.empty and "Amount" in df.columns:
-    st.markdown("### 🤖 Claude AI Expense Summary")
+    st.markdown("### 🤖 Hugging Face AI Expense Summary")
     st.markdown(
         f"<p style='color:#555;font-size:0.83rem;margin-top:-10px'>"
-        f"Powered by <b style='color:#7c6eff'>Claude ({CLAUDE_MODEL})</b> · Anthropic</p>",
+        f"Powered by <b style='color:#7c6eff'>Hugging Face ({HF_MODEL})</b></p>",
         unsafe_allow_html=True,
     )
 
@@ -443,7 +442,7 @@ if not df.empty and "Amount" in df.columns:
                 st.session_state.ai_error   = ""
                 st.rerun()
 
-    # ── Trigger Claude ──
+    # ── Trigger HF AI ──
     if gen_clicked:
         st.session_state.ai_summary = ""
         st.session_state.ai_error   = ""
@@ -453,31 +452,30 @@ if not df.empty and "Amount" in df.columns:
         if not active_key:
             st.session_state.ai_error = (
                 "**API Key missing!**\n\n"
-                "Enter your Anthropic API key in the sidebar, or add it to `.env`:\n"
-                "```\nANTHROPIC_API_KEY=sk-ant-xxxxxxxxxxxx\n```\n"
-                "Get a key at: https://console.anthropic.com"
+                "Enter your Hugging Face API key in the sidebar, or add it to `.env`:\n"
+                "```\nHF_TOKEN=hf_xxxxxxxxxxxx\n```\n"
+                "Get a key at: https://huggingface.co/settings/tokens"
             )
         else:
-            with st.spinner("🧠 Claude is analysing your expenses..."):
+            with st.spinner("🧠 Hugging Face AI is analysing your expenses..."):
                 try:
-                    result = generate_claude_summary(df, active_key)
+                    result = generate_hf_summary(df, active_key)   # FIX 3: correct function name
                     st.session_state.ai_summary = result
-                except anthropic.AuthenticationError:
-                    st.session_state.ai_error = (
-                        "**Invalid API Key!**\n\n"
-                        "Check your key at https://console.anthropic.com\n"
-                        "Make sure it starts with `sk-ant-`"
-                    )
-                except anthropic.RateLimitError:
-                    st.session_state.ai_error = (
-                        "**Rate limit reached.**\n\n"
-                        "You've hit the Anthropic API rate limit. Wait a moment and try again."
-                    )
-                except anthropic.APIConnectionError:
-                    st.session_state.ai_error = (
-                        "**Connection failed.**\n\n"
-                        "Check your internet connection and try again."
-                    )
+                except huggingface_hub.errors.HfHubHTTPError as e:  # FIX 4: correct HF error class
+                    err_str = str(e)
+                    if "401" in err_str or "403" in err_str:
+                        st.session_state.ai_error = (
+                            "**Invalid API Key!**\n\n"
+                            "Check your key at https://huggingface.co/settings/tokens. "
+                            "Make sure it starts with `hf_`."
+                        )
+                    elif "429" in err_str:
+                        st.session_state.ai_error = (
+                            "**Rate limit reached.**\n\n"
+                            "You've hit the Hugging Face API rate limit. Wait a moment and try again."
+                        )
+                    else:
+                        st.session_state.ai_error = f"**HuggingFace API Error:** {err_str}"
                 except Exception as e:
                     st.session_state.ai_error = f"**Unexpected error:** {str(e)}"
 
@@ -485,7 +483,7 @@ if not df.empty and "Amount" in df.columns:
     if st.session_state.ai_summary:
         st.markdown(
             f'<div class="ai-summary-box">'
-            f'<div><span class="ai-badge">🤖 Claude AI · {CLAUDE_MODEL}</span></div>'
+            f'<div><span class="ai-badge">🤖 Hugging Face AI · {HF_MODEL}</span></div>'
             f'{st.session_state.ai_summary}'
             f'</div>',
             unsafe_allow_html=True,
