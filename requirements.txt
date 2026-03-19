@@ -34,4 +34,6 @@ streamlit
 torch
 torchvision
 torchaudio
+plotly
+
 
