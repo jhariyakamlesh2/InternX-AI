@@ -35,5 +35,5 @@ torch
 torchvision
 torchaudio
 plotly
-
+openpyxl
 
